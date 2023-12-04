@@ -1,5 +1,5 @@
 import { BehaviorSubject, Observable, Subject, from, range } from 'rxjs'
-import { filter, map, tap, takeUntil } from 'rxjs/operators'
+import { filter, map, tap, takeUntil, takeWhile, concatMap } from 'rxjs/operators'
 import { times } from 'lodash'
 import { faker } from '@faker-js/faker'
 
@@ -20,6 +20,7 @@ type User = {
   id: number
   name: string
   role: string
+  updatedAt: number
 }
 
 const initUsers = (n: number) => times(n, (index) => ({
@@ -29,23 +30,50 @@ const initUsers = (n: number) => times(n, (index) => ({
 }))
 
 
-function filterUsers(observable: Observable<User>, types: string[], ) {
-  
+function cancelOn(observable: Observable<User>, id: number) {
   const cancelWithLimit = new Subject<void>();
 
   return observable
   .pipe(
     takeUntil(cancelWithLimit),
     tap((x) => {
-      if (x.id > 5) {
+      if (x.id == id) {
+        console.log('-->cancel', x)
         cancelWithLimit.next(undefined)
       }
     }),
-    filter((x) => x.role === 'user'),
     tap(console.log)
   )
 }
 
+
+function filterUsers(observable: Observable<User>, types: string[], ) {
+  
+  return observable
+  .pipe(
+    filter((x) => x.role === 'user'),
+    concatMap(updateUser),
+    tap(console.log)
+  )
+}
+
+function takeTopN(observable: Observable<User>, num: number) {
+  
+  return observable
+  .pipe(
+    takeWhile((x) => x.id <= num),
+    tap(console.log)
+  )
+}
+
+const updateUser = async(user: User): Promise<User> => {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      user.updatedAt = Date.now()
+      resolve(user)
+    }, 500)
+  })
+}
 
 export const runPipe = () => {
   print('observers pipe')
@@ -55,13 +83,18 @@ export const runPipe = () => {
 
   let res
 
-  const observable = from(users)
+  let observable = from(users)
   
-  
-  const filtered = filterUsers(observable, ['user'])
+  // observable = takeTopN(observable, 7)
+  // console.log('[x] top 5', observable)
+
+  // observable = cancelOn(observable, 7)
+  // console.log('[x] canceling on 5')
+
+  observable = filterUsers(observable, ['user'])
   console.log('[x] filtering')
   
-  res = filtered.subscribe({
+  res = observable.subscribe({
     complete: () => {
       console.log('complete')
     }
