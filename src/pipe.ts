@@ -1,6 +1,8 @@
-import { BehaviorSubject, Observable, Subject, from, interval, range } from 'rxjs'
+import * as Bluebird from 'bluebird'
+
+import { BehaviorSubject, Observable, ObservedValueOf, Subject, concat, from, interval, range } from 'rxjs'
 import { 
-  filter, map, tap, takeUntil, takeWhile,  concatMap, finalize, ignoreElements, take 
+  filter, map, tap, takeUntil, takeWhile,  concatMap, finalize, ignoreElements, take
 } from 'rxjs/operators'
 import { times } from 'lodash'
 import { faker } from '@faker-js/faker'
@@ -31,24 +33,24 @@ const initUsers = (n: number) => times(n, (index) => ({
   role: random(usersRoles)
 }))
 
+const saveUsersTaks = async (): Promise<any> => {
+  console.log('---SAVE Started--')
+  await Bluebird.delay(2000)
+  console.log('---SAVE DONE--')
+  return { code: 200 }
+}
+
 const updateUser = async(user: User): Promise<User> => {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      user.updatedAt = Date.now()
-      resolve(user)
-    }, 500)
-  })
+  await Bluebird.delay(500)
+  user.updatedAt = Date.now()
+  return user
 }
 
 const performTask = async(ts: number): Promise<number> => {
-  return new Promise((resolve, _) => {
-    setTimeout(() => {
-      console.log(`.....task executed after ${ts} ms`)
-      resolve(Date.now())
-    }, ts)
-  })
+  await Bluebird.delay(ts)
+  console.log(`.....task executed after ${ts} ms`)
+  return Date.now()
 }
-
 
 function cancelOn(observable: Observable<User>, id: number) {
   const cancelWithLimit = new Subject<void>();
@@ -123,9 +125,26 @@ function finalizeSample(observable: Observable<User>, types: string[], ) {
   )
 }
 
+function concatPipesSample(observables) {
+  print('schedule tasks after updating users')
+
+  const updateUsers = observables
+    .pipe(
+      concatMap(updateUser),
+      tap((x) => console.log(`user ${JSON.stringify(x)} updated!`)),
+      //ignoreElements(), // suppress NEXT calls
+    )
+
+  const pipe2 = saveUsersTaks()
+
+  return concat(updateUsers, pipe2)
+}
+
+
 export const runPipe = () => {
   print('observers pipe')
 
+  
   const users = initUsers(10)
   console.log(users)
 
@@ -134,6 +153,9 @@ export const runPipe = () => {
   //withIgnoreElements()
 
   let observable = from(users)
+  
+  observable = concatPipesSample(observable)
+  console.log('pipe with concat called')
   
   // observable = takeTopN(observable, 7)
   // console.log('[x] top 5', observable)
@@ -144,9 +166,9 @@ export const runPipe = () => {
   // observable = filterUsers(observable, ['user'])
   // console.log('[x] filtering')
 
-  observable = finalizeSample(observable, ['user'])
-  console.log('pipe with finalize called')
-  
+  // observable = finalizeSample(observable, ['user'])
+  // console.log('pipe with finalize called')
+
   res = observable.subscribe({
     complete: () => {
       console.log('[x] COMPLETE')
