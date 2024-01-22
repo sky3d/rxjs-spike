@@ -144,6 +144,8 @@ function concatPipesSample(observables) {
 export const runPipe = () => {
   print('observers pipe')
 
+
+
   
   const users = initUsers(10)
   console.log(users)
@@ -154,8 +156,8 @@ export const runPipe = () => {
 
   let observable = from(users)
   
-  observable = concatPipesSample(observable)
-  console.log('pipe with concat called')
+  // observable = concatPipesSample(observable)
+  // console.log('pipe with concat called')
   
   // observable = takeTopN(observable, 7)
   // console.log('[x] top 5', observable)
@@ -166,8 +168,8 @@ export const runPipe = () => {
   // observable = filterUsers(observable, ['user'])
   // console.log('[x] filtering')
 
-  // observable = finalizeSample(observable, ['user'])
-  // console.log('pipe with finalize called')
+  observable = finalizeSample(observable, ['user'])
+  console.log('pipe with finalize called')
 
   res = observable.subscribe({
     complete: () => {

@@ -1,4 +1,5 @@
 import { runPipe } from './pipe'
+import { run } from './concat'
 import { runAbortableTasks } from './abortable'
 import { print } from './utils'
 
@@ -8,5 +9,8 @@ export async function main(): Promise<any> {
 
   //runAbortableTasks()
 
-  runPipe()
+  // runPipe()
+  run()
+
+  print('DONE!')
 }
